@@ -1,0 +1,216 @@
+
+#include <iostream>
+#include <stack>
+#include <conio.h>
+#include <vector>
+#include <stdlib.h>
+#include <ctime>
+#include <algorithm>
+
+using namespace std;
+
+
+
+struct cells {
+	int x, y;
+	bool left_wall = 1;
+	bool right_wall = 1;
+	bool down_wall = 1;
+	bool up_wall = 1;
+	bool used = 0;
+};
+
+
+int n, m;
+cells maze[100][100], start_cell, exit_cell;
+
+struct player {
+	int x, y;
+	void move_up() {
+		if (x > 0 && !maze[x][y].up_wall)x--;
+	}
+	void move_down() {
+		if (x < n - 1 && !maze[x][y].down_wall)x++;
+	}
+	void move_left() {
+		if (y > 0 && !maze[x][y].left_wall)y--;
+	}
+	void move_right() {
+		if (y < m - 1 && !maze[x][y].right_wall)y++;
+	}
+}  P;
+
+
+
+
+inline void write_maze() {
+	
+	for (int i = 0; i < n; i++) {
+		if (!i) {
+			for (int j = 0; j < m; j++) {
+				if (maze[i][j].up_wall)cout << "-----";
+				else cout << "-   -";
+			}
+			cout << '\n';
+		}
+
+
+		for (int j = 0; j < m; j++) {
+			if (maze[i][j].left_wall)cout << '|';
+			else cout << ' ';
+
+			if (i == P.x && j == P.y) {
+				cout << " P ";
+			}else
+			if (i == start_cell.x && j == start_cell.y) {
+				cout << " O ";
+			}else
+			if (i == exit_cell.x && j == exit_cell.y) {
+				cout << " E ";
+			}
+			else cout << "   ";
+
+			if (maze[i][j].right_wall)cout << '|';
+			else cout << ' ';
+		}
+
+		cout << '\n';
+
+		for (int j = 0; j < m; j++) {
+			if (maze[i][j].down_wall)cout << "-----";
+			else cout << "-   -";
+		}
+		cout << '\n';
+	}
+}
+
+inline void write_controls() {
+	cout << "Стрелочки - управление\t Enter - если на выходе, то перейти к следующему этажу\t Esc - конец";
+}
+
+inline void write_cell(cells cell) {
+	cout << cell.x << ":" << cell.y <<'\n';
+	cout << " l = " << cell.left_wall << '\n';
+	cout << " u = " << cell.up_wall << '\n';
+	cout << " r = " << cell.right_wall << '\n';
+	cout << " d = " << cell.down_wall << '\n';
+	cout << " used = " << cell.used << '\n';
+}
+
+inline cells get_nabour(const cells cell) {
+	int x = cell.x;
+	int y = cell.y;
+	vector <cells> l;
+	if (x > 0 && !maze[x - 1][y].used) {
+		l.push_back(maze[x - 1][y]);
+	}
+	if (x < n - 1 && !maze[x + 1][y].used) {
+		l.push_back(maze[x + 1][y]);
+	}
+	if (y > 0 && !maze[x][y - 1].used) {
+		l.push_back(maze[x][y - 1]);
+	}
+	if (y < m - 1 && !maze[x][y + 1].used) {
+		l.push_back(maze[x][y + 1]);
+	}
+
+	if (!l.size())return {-1, -1};
+	int num = rand() % l.size();
+	return l[num];
+}
+
+inline void remove_wall(cells cell1, cells cell2) {
+
+	if (cell1.x > cell2.x) {
+		maze[cell1.x][cell1.y].up_wall = 0;
+		maze[cell2.x][cell2.y].down_wall = 0;
+	}
+	if (cell1.x < cell2.x) {
+		maze[cell1.x][cell1.y].down_wall = 0;
+		maze[cell2.x][cell2.y].up_wall = 0;
+	}
+	if (cell1.y > cell2.y) {
+		maze[cell1.x][cell1.y].left_wall = 0;
+		maze[cell2.x][cell2.y].right_wall = 0;
+	}
+	if (cell1.y < cell2.y) {
+		maze[cell1.x][cell1.y].right_wall = 0;
+		maze[cell2.x][cell2.y].left_wall = 0;
+	}
+}
+
+inline void generate_maze() {
+	for (int i = 0; i < n; i++)
+		for (int j = 0; j < m; j++) {
+			maze[i][j] = { i,j,1,1,1,1,0 };
+		}
+	stack <cells>  q;
+	start_cell = { rand() % n, rand() % m };
+	do {
+		exit_cell = { rand() % n , rand() % m };
+	} while (exit_cell.x == start_cell.x && exit_cell.y == start_cell.y);
+
+	q.push(start_cell);
+	while (!q.empty()) {
+		cells cell = q.top();
+		maze[cell.x][cell.y].used = 1;
+		cells nabour = get_nabour(cell);
+		if (nabour.x == -1) {
+			q.pop();
+			continue;
+		}
+		remove_wall(cell, nabour);
+		q.push(nabour);
+	}
+}
+
+int main()
+{
+	srand(time(NULL));
+	setlocale(LC_ALL, "Rus");
+	bool exit = 0;
+
+	n = 2;
+	m = 2;
+	while (!exit) {
+
+
+		generate_maze();
+
+		P.x = start_cell.x;
+		P.y = start_cell.y;
+
+		bool maze_is_confirm = 0;
+
+		while (!maze_is_confirm) {
+			system("cls");
+			write_maze();
+			write_controls();
+			switch (_getch()) {
+			case 72:
+				P.move_up();
+				break;
+			case 80:
+				P.move_down();
+				break;
+			case 75:
+				P.move_left();
+				break;
+			case 77:
+				P.move_right();
+				break;
+			case 13:
+				if(P.x == exit_cell.x && P.y == exit_cell.y) maze_is_confirm = 1;
+				break;
+			case 27: return 0;
+				break;
+			default:
+				break;
+			};
+		}
+
+		n += min(rand() % 3, 20);
+		m += min(rand() % 3, 20);
+
+	}
+}
